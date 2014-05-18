@@ -2,19 +2,68 @@
 
 
 ## Loading and preprocessing the data
-
-
+```{r echo=TRUE}
+unzip("repdata-data-activity.zip")
+data <- read.csv("activity.csv")
+data$date<-as.Date(data$date)
+```
 
 ## What is mean total number of steps taken per day?
+```{r echo=TRUE}
+sumofdays <- aggregate(steps ~ date, data=data, FUN=sum)
+barplot(sumofdays$steps, names.arg=sumofdays$date, xlab="date", ylab="steps")
 
+mean(sumofdays$steps)
+median(sumofdays$steps)
+```
 
 
 ## What is the average daily activity pattern?
+
+```{r echo=TRUE}
+meansteps <- aggregate(steps ~ interval, data=data, FUN=mean)
+plot(meansteps, type="l")
+
+meansteps$interval[which.max(meansteps$steps)]
+
+```
 
 
 
 ## Imputing missing values
 
+```{r echo=TRUE}
+sum(is.na(data))
+data <- merge(data, meansteps, by="interval", suffixes=c("",".m"))
+missing <- is.na(data$steps)
+data$steps[missing] <- data$steps.m[missing]
+data <- data[,c(1:3)]
+sumsteps <- aggregate(steps ~ date, data=data, FUN=sum)
+barplot(sumsteps$steps, names.arg=sumsteps$date, xlab="date", ylab="steps")
+mean(sumsteps$steps)
+median(sumsteps$steps)
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r, cache=TRUE, echo=TRUE}
+weekday <- function(date) {
+    if (weekdays(as.Date(date)) %in% c("Saturday", "Sunday","Cumartesi","Pazar")) {
+        "weekend"
+    } else {
+        "weekday"
+    }
+}
+data$daytype <- as.factor(sapply(data$date, weekday))
+
+par(mfrow=c(2,1))
+for (type in c("weekend", "weekday")) {
+    stepfactor <- aggregate(steps ~ interval,
+                            data=data,
+                            subset=data$daytype==type,
+                            FUN=mean)
+    plot(stepfactor, type="l", main=type)
+}
+
+```
